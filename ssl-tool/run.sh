@@ -4,7 +4,7 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-# This script generates certificates for Repository and SOLR SSL Communication:
+# This script generates certificates for Repository and SOLR TLS/SSL Mutual Auth Communication:
 #
 # * CA Entity to issue all required certificates (alias alfresco.ca)
 # * Server Certificate for Alfresco (alias ssl.repo)
@@ -54,9 +54,9 @@ SOLR_CLIENT_CERT_DNAME="/C=GB/ST=UK/L=Maidenhead/O=Alfresco Software Ltd./OU=Unk
 KEY_SIZE=1024
 
 # Keystore format (PKCS12, JKS, JCEKS)
-KEYSTORE_TYPE=JKS
+KEYSTORE_TYPE=JCEKS
 # Truststore format (JKS, JCEKS)
-TRUSTSTORE_TYPE=JKS
+TRUSTSTORE_TYPE=JCEKS
 # Encryption keystore format (JCEKS)
 ENC_STORE_TYPE=JCEKS
 
@@ -181,54 +181,6 @@ function generate {
 
 
   #
-  # ALFRESCO
-  #
-
-  # Include CA and SOLR certificates in Alfresco Truststore
-  keytool -import -trustcacerts -noprompt -alias alfresco.ca -file ca/certs/ca.cert.pem \
-  -keystore ${ALFRESCO_KEYSTORES_DIR}/ssl.truststore -storetype $TRUSTSTORE_TYPE -storepass $TRUSTSTORE_PASS
-
-  keytool -importcert -noprompt -alias ssl.repo.client -file $CERTIFICATES_DIR/solr.cer \
-  -keystore ${ALFRESCO_KEYSTORES_DIR}/ssl.truststore -storetype $TRUSTSTORE_TYPE -storepass $TRUSTSTORE_PASS
-
-  # Create Alfresco TrustStore password file
-  echo "aliases=alfresco.ca,ssl.repo.client" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-truststore-passwords.properties
-  echo "keystore.password=$TRUSTSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-truststore-passwords.properties
-  echo "alfresco.ca.password=$TRUSTSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-truststore-passwords.properties
-  echo "ssl.repo.client=$TRUSTSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-truststore-passwords.properties
-
-  # Include Alfresco Certificate in Alfresco Keystore
-  # Also adding CA Certificate for historical reasons
-  keytool -importkeystore \
-  -srckeystore $CERTIFICATES_DIR/repository.p12 -destkeystore ${ALFRESCO_KEYSTORES_DIR}/ssl.keystore \
-  -srcstoretype PKCS12 -deststoretype $KEYSTORE_TYPE \
-  -srcstorepass $KEYSTORE_PASS -deststorepass $KEYSTORE_PASS \
-  -srcalias 1 -destalias ssl.repo \
-  -srckeypass $KEYSTORE_PASS -destkeypass $KEYSTORE_PASS \
-  -noprompt
-
-  keytool -importcert -noprompt -alias ssl.alfresco.ca -file ca/certs/ca.cert.pem \
-  -keystore ${ALFRESCO_KEYSTORES_DIR}/ssl.keystore -storetype $KEYSTORE_TYPE -storepass $KEYSTORE_PASS
-
-  # Create Alfresco Keystore password file
-  echo "aliases=ssl.alfresco.ca,ssl.repo" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-keystore-passwords.properties
-  echo "keystore.password=$KEYSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-keystore-passwords.properties
-  echo "ssl.repo.password=$KEYSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-keystore-passwords.properties
-  echo "ssl.alfresco.ca.password=$KEYSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-keystore-passwords.properties
-
-  # Generate Encryption Secret Key
-  keytool -genseckey -alias metadata -keypass $ENC_METADATA_PASS -storepass $ENC_STORE_PASS -keystore ${ALFRESCO_KEYSTORES_DIR}/keystore \
-  -storetype $ENC_STORE_TYPE -keyalg DESede
-
-  # Create Alfresco Encryption password file
-  echo "aliases=metadata" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
-  echo "keystore.password=$ENC_STORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
-  echo "metadata.keyData=" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
-  echo "metadata.algorithm=DESede" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
-  echo "metadata.password=$ENC_METADATA_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
-
-
-  #
   # SOLR
   #
 
@@ -280,6 +232,53 @@ function generate {
     cp ${SOLR_KEYSTORES_DIR}/ssl.repo.client.truststore ${ZEPPELIN_KEYSTORES_DIR}/ssl.repo.client.truststore
 
   fi
+
+  #
+  # ALFRESCO
+  #
+
+  # Include CA and SOLR certificates in Alfresco Truststore
+  keytool -import -trustcacerts -noprompt -alias alfresco.ca -file ca/certs/ca.cert.pem \
+  -keystore ${ALFRESCO_KEYSTORES_DIR}/ssl.truststore -storetype $TRUSTSTORE_TYPE -storepass $TRUSTSTORE_PASS
+
+  keytool -importcert -noprompt -alias ssl.repo.client -file $CERTIFICATES_DIR/solr.cer \
+  -keystore ${ALFRESCO_KEYSTORES_DIR}/ssl.truststore -storetype $TRUSTSTORE_TYPE -storepass $TRUSTSTORE_PASS
+
+  # Create Alfresco TrustStore password file
+  echo "aliases=alfresco.ca,ssl.repo.client" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-truststore-passwords.properties
+  echo "keystore.password=$TRUSTSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-truststore-passwords.properties
+  echo "alfresco.ca.password=$TRUSTSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-truststore-passwords.properties
+  echo "ssl.repo.client=$TRUSTSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-truststore-passwords.properties
+
+  # Include Alfresco Certificate in Alfresco Keystore
+  # Also adding CA Certificate for historical reasons
+  keytool -importkeystore \
+  -srckeystore $CERTIFICATES_DIR/repository.p12 -destkeystore ${ALFRESCO_KEYSTORES_DIR}/ssl.keystore \
+  -srcstoretype PKCS12 -deststoretype $KEYSTORE_TYPE \
+  -srcstorepass $KEYSTORE_PASS -deststorepass $KEYSTORE_PASS \
+  -srcalias 1 -destalias ssl.repo \
+  -srckeypass $KEYSTORE_PASS -destkeypass $KEYSTORE_PASS \
+  -noprompt
+
+  keytool -importcert -noprompt -alias ssl.alfresco.ca -file ca/certs/ca.cert.pem \
+  -keystore ${ALFRESCO_KEYSTORES_DIR}/ssl.keystore -storetype $KEYSTORE_TYPE -storepass $KEYSTORE_PASS
+
+  # Create Alfresco Keystore password file
+  echo "aliases=ssl.alfresco.ca,ssl.repo" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-keystore-passwords.properties
+  echo "keystore.password=$KEYSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-keystore-passwords.properties
+  echo "ssl.repo.password=$KEYSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-keystore-passwords.properties
+  echo "ssl.alfresco.ca.password=$KEYSTORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/ssl-keystore-passwords.properties
+
+  # Generate Encryption Secret Key
+  keytool -genseckey -alias metadata -keypass $ENC_METADATA_PASS -storepass $ENC_STORE_PASS -keystore ${ALFRESCO_KEYSTORES_DIR}/keystore \
+  -storetype $ENC_STORE_TYPE -keyalg DESede
+
+  # Create Alfresco Encryption password file
+  echo "aliases=metadata" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
+  echo "keystore.password=$ENC_STORE_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
+  echo "metadata.keyData=" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
+  echo "metadata.algorithm=DESede" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
+  echo "metadata.password=$ENC_METADATA_PASS" >> ${ALFRESCO_KEYSTORES_DIR}/keystore-passwords.properties
 
 
   #
@@ -375,5 +374,5 @@ do
     shift
 done
 
-# Start generating keystores, truststores and certificates
+# Generating keystores, truststores and certificates
 generate
