@@ -262,7 +262,7 @@ For instance, the following command will produce `keystores` folder in a host fo
 
 ```
 ssl:
-    image: alfresco/ssl-base
+    image: alfresco/alfresco-base-ssl
     environment:
         ALFRESCO_VERSION: enterprise
         KEY_SIZE: 2048
