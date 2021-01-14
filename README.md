@@ -267,7 +267,7 @@ ssl:
         ALFRESCO_VERSION: enterprise
         KEY_SIZE: 2048
     volumes:
-        - ./keystores:/keystores
+        - ./keystores:/tmp/keystores
 ```
 
 Sample configurations for *Alfresco Enterprise* and *Alfresco Community* have been provided at `docker-compose` folder.
