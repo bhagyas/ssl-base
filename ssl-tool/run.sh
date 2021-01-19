@@ -354,6 +354,26 @@ do
             SOLR_CLIENT_CERT_DNAME="$2"
             shift
         ;;
+        -browsercertdname)
+            BROWSER_CERT_DNAME="$2"
+            shift
+        ;;
+        -caservername)
+            CA_SERVER_NAME="$2"
+            shift
+        ;;
+        -alfrescoservername)
+            ALFRESCO_SERVER_NAME="$2"
+            shift
+        ;;
+        -solrservername)
+            SOLR_SERVER_NAME="$2"
+            shift
+        ;;
+        -alfrescoformat)
+            ALFRESCO_FORMAT="$2"
+            shift
+        ;;
         *)
             echo "An invalid parameter was received: $1"
             echo "Allowed parameters:"
@@ -368,6 +388,11 @@ do
             echo "  -cacertdname"
             echo "  -repocertdname"
             echo "  -solrcertdname"
+            echo "  -browsercertdname"
+            echo "  -caservername"
+            echo "  -alfrescoservername"
+            echo "  -solrservername"
+            echo "  -alfrescoformat"
             exit 1
         ;;
     esac
